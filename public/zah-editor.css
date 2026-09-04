@@ -1,0 +1,53 @@
+/* ===== Zah Editor, live-canvas editor (neutral monochrome, do not brand) =====
+   Lifted verbatim from the skill template. This site has five pages, so the
+   editor lives in shared files instead of being pasted into each one. Behaviour
+   and appearance are unchanged; only the config is per page. */
+#edToggle { position: fixed; right: 0; bottom: 22px; z-index: 60; width: 34px; height: 42px; border: 1px solid rgba(17,24,39,.16); border-right: 0; border-radius: 8px 0 0 8px; background: rgba(255,255,255,.8); color: #6b7280; font-size: 17px; cursor: pointer; opacity: .5; backdrop-filter: blur(8px); }
+#edToggle:hover { opacity: 1; }
+body.editing #edToggle { display: none; }
+#edBar { position: fixed; top: 12px; left: 50%; transform: translate(-50%, -160%); z-index: 62; display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 10px; background: rgba(255,255,255,.97); border: 1px solid rgba(17,24,39,.1); box-shadow: 0 6px 22px rgba(17,24,39,.1); backdrop-filter: blur(10px); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+body.editing #edBar { transform: translate(-50%, 0); }
+#edBar button { display: inline-flex; align-items: center; height: 28px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: #4b5563; font: 600 12.5px Inter, system-ui, sans-serif; cursor: pointer; }
+#edBar button:hover:not(:disabled) { background: rgba(17,24,39,.06); color: #111827; }
+#edBar button.primary { background: #111827; color: #fff; }
+#edBar button.primary:hover { background: #000; color: #fff; }
+#edBar button:disabled { opacity: .3; cursor: default; }
+#edBar .ic { width: 28px; padding: 0; justify-content: center; font-size: 15px; }
+#edBar .status { color: #9ca3af; font: 600 10.5px Inter, system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; padding: 0 5px; min-width: 52px; text-align: center; }
+#edBar .sep { width: 1px; height: 16px; background: rgba(17,24,39,.1); margin: 0 2px; }
+.edbub { position: fixed; z-index: 63; display: none; flex-direction: column; padding: 3px; border-radius: 9px; background: rgba(255,255,255,.98); border: 1px solid rgba(17,24,39,.1); box-shadow: 0 8px 26px rgba(17,24,39,.14); backdrop-filter: blur(10px); }
+.edbub.show { display: flex; }
+.edbub .ed-row { display: flex; align-items: center; gap: 1px; }
+.edbub .ed-row.extra { display: none; margin-top: 3px; padding-top: 3px; border-top: 1px solid rgba(17,24,39,.08); }
+.edbub.more .ed-row.extra { display: flex; }
+.edbub button { width: 27px; height: 27px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #4b5563; cursor: pointer; font: 700 13px Georgia, serif; padding: 0; }
+.edbub button:hover { background: rgba(17,24,39,.06); color: #111827; }
+.edbub button.on { background: rgba(17,24,39,.1); color: #111827; }
+.edbub button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.edbub .sep { width: 1px; height: 15px; margin: 0 3px; background: rgba(17,24,39,.08); }
+.edbub .chev { transition: transform .25s; }
+.edbub.more .chev { transform: rotate(180deg); }
+.edbub select { height: 27px; border: 0; border-radius: 6px; background: transparent; color: #4b5563; font: 600 11.5px Inter, system-ui, sans-serif; padding: 0 2px; cursor: pointer; max-width: 86px; }
+.edbub select:hover { background: rgba(17,24,39,.06); }
+.edbub .swatch { position: relative; width: 27px; height: 27px; border-radius: 6px; overflow: hidden; display: inline-block; }
+.edbub .swatch:hover { background: rgba(17,24,39,.06); }
+.edbub .swatch input { position: absolute; inset: -20%; width: 140%; height: 140%; border: 0; padding: 0; cursor: pointer; background: transparent; opacity: 0; }
+.edbub .swatch::after { content: var(--swch, "A"); position: absolute; inset: 0; display: grid; place-items: center; color: #4b5563; font: 700 12px Georgia; pointer-events: none; box-shadow: inset 0 -3px 0 var(--sw, #9ca3af); }
+.edbub button.txt { width: auto; padding: 0 9px; font: 600 11.5px Inter, system-ui, sans-serif; }
+.edbub .lab { padding: 0 8px; font: 600 10.5px Inter, system-ui, sans-serif; color: #9ca3af; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.edbub input[type="range"] { width: 92px; height: 27px; accent-color: #111827; cursor: pointer; }
+body.editing .ed-hov { outline: 1px dashed rgba(17,24,39,.35) !important; outline-offset: 4px; }
+.ed-sel { outline: 1.5px solid rgba(17,24,39,.6) !important; outline-offset: 4px; }
+body.editing [data-ed] { outline: 1px dashed rgba(17,24,39,.18); outline-offset: 3px; border-radius: 4px; }
+body.editing [data-ed]:hover { outline-color: rgba(17,24,39,.4); }
+body.editing [data-ed]:focus { outline: 1.5px solid rgba(17,24,39,.55); background: rgba(255,255,255,.5); }
+.ed-img { max-width: 100%; height: auto; border-radius: 8px; }
+.ed-video { position: relative; width: 100%; max-width: 640px; margin: 16px auto; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; box-shadow: 0 12px 32px rgba(17,24,39,.16); }
+.ed-video iframe, .ed-video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+@media (max-width: 640px) { .edbub { max-width: calc(100vw - 16px); } }
+
+/* dark sections invert the dashed outlines into invisibility, so lift them */
+body.editing section.dark [data-ed], body.editing .hero [data-ed], body.editing .site-foot [data-ed] { outline-color: rgba(255,255,255,.24); }
+body.editing section.dark [data-ed]:hover, body.editing .hero [data-ed]:hover, body.editing .site-foot [data-ed]:hover { outline-color: rgba(255,255,255,.55); }
+body.editing section.dark .ed-hov, body.editing .hero .ed-hov { outline-color: rgba(255,255,255,.5) !important; }
+section.dark .ed-sel, .hero .ed-sel { outline-color: rgba(255,255,255,.8) !important; }
