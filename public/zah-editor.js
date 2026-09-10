@@ -24,6 +24,11 @@
     root: "main",
     storageKey: "zah-page-edits-v1",
     adminHash: "",
+    // A server that says yes or no to a login. ZAH Site MCP serves exactly
+    // this path on every ZAH client site; when nothing answers there, the
+    // page's own adminHash is used instead, so this default is safe anywhere.
+    verifyUrl: "/zah-site/login",
+    who: "ZAH Account",       // what the login prompt calls it
     editSelector: ["h1","h2","h3","h4","p","li","blockquote","figcaption","span.chip","b","strong"],
     widgetSelector: ["img","video",".ed-video","a.button","a.btn","button",".card",".panel",".widget","section"]
   }, window.ZAH_EDITOR_CFG || {});
@@ -401,15 +406,48 @@
     hideEl();
     document.querySelectorAll(".ed-hov").forEach(x => x.classList.remove("ed-hov"));
   }
-  document.getElementById("edToggle").addEventListener("click", async () => {
-    if (sessionStorage.getItem(CFG.storageKey + ":admin") !== "true") {
-      const email = prompt("Admin email"); if (!email) return;
-      const pw = prompt("Admin password"); if (!pw) return;
-      if (await hashCreds(email, pw) !== CFG.adminHash) { alert("Login failed."); return; }
-      sessionStorage.setItem(CFG.storageKey + ":admin", "true");
+  // THE ONE LOGIN. With CFG.verifyUrl set (ZAH Site MCP serves it at
+  // /zah-site/login) the server decides who may edit, so the client signs in
+  // with the ZAH Account they already pay with. CFG.adminHash stays as the
+  // key that needs no network: Zah's, and the way in when head office is
+  // unreachable. Whoever gets in, a "zah-editor:login" event carries the
+  // answer so a publish bridge can pick up its token.
+  function announce(email, pw, data) {
+    document.dispatchEvent(new CustomEvent("zah-editor:login", { detail: { email: email, password: pw, data: data || null } }));
+    sessionStorage.setItem(CFG.storageKey + ":admin", "true");
+  }
+  async function signIn() {
+    const email = prompt(CFG.verifyUrl ? "Sign in to edit. Your " + CFG.who + " email:" : "Admin email");
+    if (!email) return false;
+    const pw = prompt(CFG.verifyUrl ? "Password:" : "Admin password");
+    if (!pw) return false;
+    let said = "";
+    if (CFG.verifyUrl) {
+      let r = null, d = {};
+      try {
+        r = await fetch(CFG.verifyUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, password: pw }) });
+        d = await r.json().catch(() => ({}));
+      } catch (e) { r = null; }
+      if (r && r.ok) { announce(email, pw, d); return true; }
+      if (r && d && d.error) said = d.error;
     }
+    // The server said no, or nothing was listening, or there is no network.
+    // The page's own key gets its turn either way: it is the one that works
+    // when head office cannot be reached, and it is how Zah gets in.
+    if (CFG.adminHash && await hashCreds(email, pw) === CFG.adminHash) { announce(email, pw, null); return true; }
+    alert(said || "Login failed.");
+    return false;
+  }
+  document.getElementById("edToggle").addEventListener("click", async () => {
+    if (sessionStorage.getItem(CFG.storageKey + ":admin") !== "true" && !(await signIn())) return;
     enterEditing();
   });
+  // The site's /edit door lands here with ?edit=1; open the login on arrival
+  // and tidy the address, so a shared or reloaded link is the plain page.
+  if (/[?&]edit=1(&|$)/.test(location.search) || location.hash === "#edit") {
+    try { history.replaceState(null, "", location.pathname + location.search.replace(/([?&])edit=1(&|$)/, "$1").replace(/[?&]$/, "")); } catch (e) {}
+    setTimeout(() => document.getElementById("edToggle").click(), 0);
+  }
   document.getElementById("edDone").addEventListener("click", () => {
     if (dirty && !confirm("You have unsaved changes. Leave edit mode anyway? (Save first to keep them.)")) return;
     exitEditing();

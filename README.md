@@ -27,7 +27,7 @@ On each page:
     window.ZAH_EDITOR_CFG = {
       root: "main",
       storageKey: "new-vision-home-v1",            // unique per page
-      adminHash: "<sha256 of email.lower():password>",
+      adminHash: "<sha256 of email.lower():password>",   // optional spare key
       editSelector: ["h1","h2","h3","h4","p","li","blockquote","figcaption","b","strong"],   // optional
       widgetSelector: ["img","video",".ed-video","a.btn","button",".card","section"],       // optional
     };
@@ -37,13 +37,37 @@ On each page:
 </body>
 ```
 
+## The login is the client's ZAH Account (1.1.0)
+
+The pencil asks the server, not the page. `CFG.verifyUrl` defaults to
+`/zah-site/login`, which every ZAH client site already serves (ZAH Site MCP),
+and which accepts **the email and password the client made at
+zahbrandsolutions.com/account** — the same one that opens their billing and
+their Dispatch board. Zah, 2026-09-10: *"If they are paying for it they should
+have access without having to create multiple logins."*
+
+`adminHash` is now the spare key, not the only one. It still opens the pencil
+with no network at all, so a bad day at head office never locks a client out
+of their own page, and it is how Zah gets in.
+
+`adminHash` is tried whenever the server does not say yes — refused, not
+listening, switched off, no network — so a site with no ZAH Site MCP behaves
+exactly as it always did. Set `verifyUrl: ""` to skip the server entirely.
+
+Every successful login fires `zah-editor:login` on `document` with
+`{ email, password, data }`, where `data` is whatever the server answered;
+ZAH Site MCP's bridge reads its publish token straight out of it.
+
+**`?edit=1` or `#edit` opens the login on arrival** and tidies the address, so
+a site can point an "Edit this site" link at `/edit`.
+
 No editor markup on the page: the engine injects its own pencil, bar and
 bubbles. Hash a login with
 `python -c "import hashlib;print(hashlib.sha256('email:password'.encode()).hexdigest())"`.
 
 ## What it does
 
-Pencil (bottom right) → admin login → click any text to edit it, click any
+Pencil (bottom right) → sign in → click any text to edit it, click any
 image, button, card or section to move, duplicate, delete, resize (% only),
 reshape, recolour, align, replace, relink. Undo/redo, Ctrl+Z/Y/S, Delete/Esc.
 Save writes to localStorage; with ZAH Site MCP's bridge loaded after it, Save

@@ -1,14 +1,26 @@
 {
   "name": "zah-editor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Zah Editor: on-page click-to-edit and element builder for ZAH sites, served from one installed engine.",
   "main": "index.js",
   "type": "commonjs",
-  "files": ["index.js", "public/", "README.md"],
-  "scripts": { "test": "node test/smoke.js" },
-  "engines": { "node": ">=20" },
-  "peerDependencies": { "express": ">=4.18" },
-  "devDependencies": { "express": "^4.21.2" },
+  "files": [
+    "index.js",
+    "public/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "express": ">=4.18"
+  },
+  "devDependencies": {
+    "express": "^4.21.2"
+  },
   "repository": "github:Yawitazah/zah-editor",
   "license": "UNLICENSED"
 }
