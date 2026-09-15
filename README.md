@@ -82,3 +82,14 @@ The dashed edit outlines are near-black. Add class `dark` to a dark section
 
 `npm test`: engine served with no-cache, reads `ZAH_EDITOR_CFG`, injects its
 toolbar, parses, css is monochrome.
+
+## Whole-page editing (1.2.0)
+
+Set `root: "body"` in the page and Site MCP mount to include header/footer
+text. Toolbar, scripts and product chrome stay outside edit/snapshot handling.
+The toolbar sits above sticky site headers and wraps on mobile.
+
+With Site MCP 0.6.0, Save is server-confirmed and Reset only fires after the
+client confirms. Unsaved changes remain unsaved on publishing failure.
+Server-rendered pages ignore stale localStorage page copies. Plain static
+pages keep their existing local save fallback.

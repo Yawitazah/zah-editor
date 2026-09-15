@@ -12,7 +12,8 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1);
   assert(true, 'engine parses');
   r = await fetch(base + '/zah-editor/zah-editor.css'); const css = await r.text();
   assert(r.ok && css.includes('#edToggle') && !/#[0-9a-f]{6}/i.test(css.replace(/#(111827|4b5563|6b7280|9ca3af|fff|000)\b/gi, '')), 'css served, monochrome only');
-  srv.close();
+  srv.closeAllConnections();
+  await new Promise(resolve => srv.close(resolve));
   console.log('\nALL PASSED');
-  process.exit(0);
+
 })().catch((e) => { console.error(e); process.exit(1); });

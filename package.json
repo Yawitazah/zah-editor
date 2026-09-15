@@ -1,6 +1,6 @@
 {
   "name": "zah-editor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Zah Editor: on-page click-to-edit and element builder for ZAH sites, served from one installed engine.",
   "main": "index.js",
   "type": "commonjs",

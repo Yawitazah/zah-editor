@@ -1,6 +1,7 @@
 /* ===== Zah Editor, engine (package build) =====
    The skill template with CFG read from window.ZAH_EDITOR_CFG, plus toolbar
    self-injection so a page needs no editor markup. Monochrome by design. */
+window.ZAH_EDITOR_EVENTS = true;
 (function ensureToolbar() {
   if (document.getElementById("edToggle")) return;
   var wrap = document.createElement("div");
@@ -29,7 +30,7 @@
     // page's own adminHash is used instead, so this default is safe anywhere.
     verifyUrl: "/zah-site/login",
     who: "ZAH Account",       // what the login prompt calls it
-    editSelector: ["h1","h2","h3","h4","p","li","blockquote","figcaption","span.chip","b","strong"],
+    editSelector: ["h1","h2","h3","h4","p","li","blockquote","figcaption","span","a","label","small","dt","dd","b","strong"],
     widgetSelector: ["img","video",".ed-video","a.button","a.btn","button",".card",".panel",".widget","section"]
   }, window.ZAH_EDITOR_CFG || {});
 
@@ -38,8 +39,11 @@
   const EDIT_SEL = CFG.editSelector.map(s => CFG.root + " " + s).join(", ");
   const WIDGET_SEL = CFG.widgetSelector.map(s => CFG.root + " " + s).join(", ");
 
+  const CHROME = 'script:not([data-zs-keep]), noscript:not([data-zs-keep]), #edToggle, #edBar, #edBubble, #edEl, [data-zs-chrome]';
+  const protectedNode = el => !!el.closest(CHROME + ', [data-zs-credit]');
+  const serverManaged = !!document.querySelector('meta[name="zah-site-version"]');
   // Apply saved edits FIRST so later DOM reads see the edited page.
-  try { const saved = localStorage.getItem(CFG.storageKey); if (saved) root.innerHTML = saved; } catch (e) {}
+  try { const saved = localStorage.getItem(CFG.storageKey); if (saved && !serverManaged) root.innerHTML = saved; } catch (e) {}
 
   let editing = false;
   let undoStack = [], redoStack = [], current = null, savedRange = null, dirty = false, typingTimer = null;
@@ -52,10 +56,11 @@
     return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
   }
   function editables() {
-    const arr = [...root.querySelectorAll(EDIT_SEL)];
+    const arr = [...root.querySelectorAll(EDIT_SEL)].filter(el => !protectedNode(el));
     return arr.filter(el => !arr.some(o => o !== el && o.contains(el)));
   }
   function setContentEditable(on) {
+    root.querySelectorAll("[data-zs-credit]").forEach(el => el.setAttribute("contenteditable", "false"));
     editables().forEach(el => {
       if (on) { el.setAttribute("contenteditable", "true"); el.dataset.ed = "1"; }
       else { el.removeAttribute("contenteditable"); delete el.dataset.ed; }
@@ -63,12 +68,19 @@
   }
   function snapshot() {
     const clone = root.cloneNode(true);
+    clone.querySelectorAll(CHROME).forEach(el => el.remove());
     clone.querySelectorAll("[contenteditable]").forEach(e => { if (e.getAttribute("contenteditable") !== "false") e.removeAttribute("contenteditable"); });
     clone.querySelectorAll("[data-ed]").forEach(e => e.removeAttribute("data-ed"));
     clone.querySelectorAll(".ed-sel, .ed-hov").forEach(e => e.classList.remove("ed-sel", "ed-hov"));
     return clone.innerHTML;
   }
-  function applyHTML(html) { root.innerHTML = html; if (editing) setContentEditable(true); }
+  function applyHTML(html) {
+    const chrome = [...root.querySelectorAll(CHROME)].filter(el => !el.parentElement.closest(CHROME));
+    chrome.forEach(el => el.remove());
+    root.innerHTML = html;
+    chrome.forEach(el => root.appendChild(el));
+    if (editing) setContentEditable(true);
+  }
   function setStatus(t) { statusEl.textContent = t; }
   function refreshBar() {
     document.getElementById("edUndo").disabled = undoStack.length === 0;
@@ -262,6 +274,7 @@
     elBub.style.top = top + "px";
   }
   function selectEl(el) {
+    if (protectedNode(el) || el.querySelector("[data-zs-credit]")) return;
     bubble.classList.remove("show");
     if (elSel) elSel.classList.remove("ed-sel");
     el.classList.remove("ed-hov");
@@ -281,6 +294,7 @@
     if (!elSel) return;
     const c = elSel.cloneNode(true);
     c.classList.remove("ed-sel");
+    c.removeAttribute("data-zs"); c.querySelectorAll("[data-zs]").forEach(el => el.removeAttribute("data-zs"));
     elSel.after(c); elRecord();
   }
   function delEl() {
@@ -440,6 +454,7 @@
   }
   document.getElementById("edToggle").addEventListener("click", async () => {
     if (sessionStorage.getItem(CFG.storageKey + ":admin") !== "true" && !(await signIn())) return;
+    document.dispatchEvent(new CustomEvent("zah-editor:before-edit"));
     enterEditing();
   });
   // The site's /edit door lands here with ?edit=1; open the login on arrival
@@ -452,12 +467,15 @@
     if (dirty && !confirm("You have unsaved changes. Leave edit mode anyway? (Save first to keep them.)")) return;
     exitEditing();
   });
+  document.addEventListener("zah-editor:published", () => { dirty = false; refreshBar(); });
   document.getElementById("edSave").addEventListener("click", () => {
+    if (window.ZAH_SITE_PUBLISH) { document.dispatchEvent(new CustomEvent("zah-editor:save")); return; }
     try { localStorage.setItem(CFG.storageKey, snapshot()); dirty = false; refreshBar(); setStatus("Saved"); }
     catch (e) { alert("Could not save (storage full). Large embedded images can exceed the browser limit."); }
   });
   document.getElementById("edReset").addEventListener("click", () => {
     if (!confirm("Reset the page to the original and discard all saved edits?")) return;
+    if (window.ZAH_SITE_PUBLISH) { document.dispatchEvent(new CustomEvent("zah-editor:reset")); return; }
     localStorage.removeItem(CFG.storageKey); location.reload();
   });
   document.getElementById("edUndo").addEventListener("click", undo);
@@ -470,7 +488,7 @@
   // click resolution: links never navigate; media/buttons select directly; block padding
   // selects the block; text clicks stay in text mode.
   root.addEventListener("click", e => {
-    if (!editing) return;
+    if (!editing || protectedNode(e.target)) return;
     const a = e.target.closest("a"); if (a) e.preventDefault();
     const direct = e.target.closest([CFG.root + " img", CFG.root + " video", CFG.root + " .ed-video", CFG.root + " a.button", CFG.root + " a.btn", CFG.root + " button"].join(", "));
     if (direct) { selectEl(direct); return; }
