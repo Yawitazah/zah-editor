@@ -46,6 +46,7 @@ window.ZAH_EDITOR_EVENTS = true;
   try { const saved = localStorage.getItem(CFG.storageKey); if (saved && !serverManaged) root.innerHTML = saved; } catch (e) {}
 
   let editing = false;
+  let pendingSnapshot = null;
   let undoStack = [], redoStack = [], current = null, savedRange = null, dirty = false, typingTimer = null;
   const bubble = document.getElementById("edBubble");
   const statusEl = document.getElementById("edStatus");
@@ -467,9 +468,9 @@ window.ZAH_EDITOR_EVENTS = true;
     if (dirty && !confirm("You have unsaved changes. Leave edit mode anyway? (Save first to keep them.)")) return;
     exitEditing();
   });
-  document.addEventListener("zah-editor:published", () => { dirty = false; refreshBar(); });
+  document.addEventListener("zah-editor:published", e => { dirty = snapshot() !== pendingSnapshot; refreshBar(); if (e.detail) e.detail.unsaved = dirty; });
   document.getElementById("edSave").addEventListener("click", () => {
-    if (window.ZAH_SITE_PUBLISH) { document.dispatchEvent(new CustomEvent("zah-editor:save")); return; }
+    if (window.ZAH_SITE_PUBLISH) { clearTimeout(typingTimer); record(); pendingSnapshot = snapshot(); document.dispatchEvent(new CustomEvent("zah-editor:save")); return; }
     try { localStorage.setItem(CFG.storageKey, snapshot()); dirty = false; refreshBar(); setStatus("Saved"); }
     catch (e) { alert("Could not save (storage full). Large embedded images can exceed the browser limit."); }
   });
